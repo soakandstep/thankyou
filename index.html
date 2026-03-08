@@ -1277,41 +1277,80 @@
     let done    = false;
     const THRESHOLD = 0.40;
 
+    // ── Universal pointer coords (works mouse + touch + stylus) ──
     function getXY(e) {
       const rect = canvas.getBoundingClientRect();
-      const src  = e.touches ? e.touches[0] : e;
+      // Pointer events give clientX/Y directly; touch events use touches[]
+      let clientX, clientY;
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else if (e.changedTouches && e.changedTouches.length > 0) {
+        clientX = e.changedTouches[0].clientX;
+        clientY = e.changedTouches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
       return {
-        x: (src.clientX - rect.left) * (canvas.width  / rect.width),
-        y: (src.clientY - rect.top)  * (canvas.height / rect.height)
+        x: (clientX - rect.left) * (canvas.width  / rect.width),
+        y: (clientY - rect.top)  * (canvas.height / rect.height)
       };
     }
 
     function doScratch(x, y) {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
-      ctx.arc(x, y, 30 * dpr, 0, Math.PI * 2);
+      // Larger radius on mobile so finger scratches more area
+      const r = (window.innerWidth <= 520 ? 38 : 30) * dpr;
+      ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
     }
 
+    let checkFrame = null;
     function checkThreshold() {
       if (done) return;
-      const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      let transparent = 0;
-      for (let i = 3; i < d.length; i += 4) { if (d[i] < 128) transparent++; }
-      if (transparent / (canvas.width * canvas.height) > THRESHOLD) {
-        done = true;
-        setTimeout(() => completeScratch(), 350);
-      }
+      if (checkFrame) return; // debounce — only one check per frame
+      checkFrame = requestAnimationFrame(() => {
+        checkFrame = null;
+        if (done) return;
+        const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let transparent = 0;
+        for (let i = 3; i < d.length; i += 4) { if (d[i] < 128) transparent++; }
+        if (transparent / (canvas.width * canvas.height) > THRESHOLD) {
+          done = true;
+          setTimeout(() => completeScratch(), 300);
+        }
+      });
     }
 
-    canvas.addEventListener('mousedown',  e => { drawing = true; const p = getXY(e); doScratch(p.x, p.y); });
-    canvas.addEventListener('mousemove',  e => { if (!drawing) return; const p = getXY(e); doScratch(p.x, p.y); checkThreshold(); });
-    canvas.addEventListener('mouseup',    () => { drawing = false; checkThreshold(); });
-    canvas.addEventListener('mouseleave', () => { drawing = false; });
-    canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true;  const p = getXY(e); doScratch(p.x, p.y); }, { passive: false });
-    canvas.addEventListener('touchmove',  e => { e.preventDefault(); if (!drawing) return; const p = getXY(e); doScratch(p.x, p.y); checkThreshold(); }, { passive: false });
-    canvas.addEventListener('touchend',   () => { drawing = false; checkThreshold(); });
+    // ── Pointer Events API — single unified handler for mouse + touch + pen ──
+    canvas.style.touchAction = 'none'; // block browser scroll on canvas
+    canvas.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      canvas.setPointerCapture(e.pointerId);
+      drawing = true;
+      const p = getXY(e); doScratch(p.x, p.y);
+    }, { passive: false });
+    canvas.addEventListener('pointermove', e => {
+      e.preventDefault();
+      if (!drawing) return;
+      const p = getXY(e); doScratch(p.x, p.y); checkThreshold();
+    }, { passive: false });
+    canvas.addEventListener('pointerup',     e => { drawing = false; checkThreshold(); });
+    canvas.addEventListener('pointercancel', e => { drawing = false; });
+
+    // ── Fallback touch events for older iOS Safari (pre-pointer-events support) ──
+    canvas.addEventListener('touchstart', e => {
+      if (e.cancelable) e.preventDefault();
+      drawing = true; const p = getXY(e); doScratch(p.x, p.y);
+    }, { passive: false });
+    canvas.addEventListener('touchmove', e => {
+      if (e.cancelable) e.preventDefault();
+      if (!drawing) return; const p = getXY(e); doScratch(p.x, p.y); checkThreshold();
+    }, { passive: false });
+    canvas.addEventListener('touchend', e => { drawing = false; checkThreshold(); });
   }
   function completeScratch() {
     if(typeof ariaOnScratch==="function") ariaOnScratch();
@@ -1906,7 +1945,7 @@
 
 <!-- ── Scratch Card Overlay ── -->
 <div id="scratchOverlay" style="display:none; position:fixed; inset:0; z-index:1000; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); background:rgba(1,36,40,0.55); align-items:center; justify-content:center; flex-direction:column; padding: env(safe-area-inset-top,16px) 16px env(safe-area-inset-bottom,16px);">
-  <div id="scratchCardWrap" style="position:relative; width:min(300px, 85vw); height:min(300px, 85vw); border-radius:24px; box-shadow:0 32px 80px rgba(1,36,40,0.45); overflow:hidden;">
+  <div id="scratchCardWrap" style="position:relative; width:min(300px, 85vw); height:min(300px, 85vw); border-radius:24px; box-shadow:0 32px 80px rgba(1,36,40,0.45); overflow:hidden; touch-action:none; -webkit-user-select:none; user-select:none;">
     <!-- Revealed layer (shown when scratched) -->
     <div id="scratchReveal" style="position:absolute;inset:0;background:#f4f0ea;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center;">
       <div style="font-size:3rem;">🎉</div>
