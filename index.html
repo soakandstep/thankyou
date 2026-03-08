@@ -1210,13 +1210,13 @@
       en:"Scratch complete ✓",hi:"स्क्रैच पूरा ✓",ta:"ஸ்க்ராட்ச் முடிந்தது ✓",te:"స్క్రాచ్ పూర్తయింది ✓",kn:"ಸ್ಕ್ರಾಚ್ ಮುಗಿಯಿತು ✓",ml:"സ്ക്രാച്ച് പൂർത്തി ✓",mr:"स्क्रॅच पूर्ण ✓",bn:"স্ক্র্যাচ সম্পন্ন ✓",gu:"સ્ક્રૅચ પૂર્ણ ✓",pa:"ਸਕ੍ਰੈਚ ਪੂਰਾ ✓",or:"ସ୍କ୍ରାଚ୍ ସମ୍ପୂର୍ଣ୍ଣ ✓",ur:"اسکریچ مکمل ✓"
     };
     const hintTexts = {
-      en:"Scratch to reveal your gift",hi:"अपना गिफ्ट देखने के लिए स्क्रैच करें",ta:"உங்கள் பரிசை வெளிப்படுத்த ஸ்க்ராட்ச் செய்யுங்கள்",te:"మీ బహుమతి చూడటానికి స్క్రాచ్ చేయండి",kn:"ನಿಮ್ಮ ಉಡುಗೊರೆ ನೋಡಲು ಸ್ಕ್ರಾಚ್ ಮಾಡಿ",ml:"നിങ്ങളുടെ സമ്മാനം കാണാൻ സ്ക്രാച്ച് ചെയ്യൂ",mr:"तुमची भेट पाहण्यासाठी स्क्रॅच करा",bn:"আপনার উপহার দেখতে স্ক্র্যাচ করুন",gu:"તમારી ભેટ જોવા સ્ક્રૅચ કરો",pa:"ਆਪਣਾ ਤੋਹਫ਼ਾ ਦੇਖਣ ਲਈ ਸਕ੍ਰੈਚ ਕਰੋ",or:"ଆପଣଙ୍କ ଉପହାର ଦେଖିବାକୁ ସ୍କ୍ରାଚ୍ କରନ୍ତୁ",ur:"اپنا تحفہ دیکھنے کے لیے اسکریچ کریں"
+      en:"Scratch to reveal your gift",hi:"अपना गिफ्ट देखने के लिए स्क्रैच करें",ta:"உங்கள் பரிசை வெளிப்படுத்த ஸ்க்ராட்ச் செய்யுங்கள்",te:"మీ బహుమతి చూడటానికి స్క్రాచ్ చేయండి",kn:"ನಿಮ್ಮ ಉಡುಗೊರೆ ನೋಡಲు ಸ್ಕ್ರಾಚ್ ಮಾಡಿ",ml:"നിങ്ങളുടെ സമ്മാനം കാണാൻ സ്ക്രാച്ച് ചെയ്യൂ",mr:"तुमची भेट पाहण्यासाठी स्क्रॅच करा",bn:"আপনার উপহার দেখতে স্ক্র্যাচ করুন",gu:"તમારી ભેટ જોવા સ્ક્રૅચ કરો",pa:"ਆਪਣਾ ਤੋਹਫ਼ਾ ਦੇਖਣ ਲਈ ਸਕ੍ਰੈਚ ਕਰੋ",or:"ଆପଣଙ୍କ ଉପହାର ଦେଖିବାକୁ ସ୍କ୍ରାଚ୍ କରନ୍ତୁ",ur:"اپنا تحفہ دیکھنے کے لیے اسکریچ کریں"
     };
 
     document.getElementById('scratchRevealTitle').innerHTML = revealTitles[lang] || revealTitles['en'];
-    document.getElementById('scratchRevealSub').textContent = revealSubs[lang] || revealSubs['en'];
-    document.getElementById('scratchHint').textContent = hintTexts[lang] || hintTexts['en'];
-    document.getElementById('scratchSkip').style.display = 'block';
+    document.getElementById('scratchRevealSub').textContent = revealSubs[lang]   || revealSubs['en'];
+    document.getElementById('scratchHint').textContent      = hintTexts[lang]    || hintTexts['en'];
+    document.getElementById('scratchSkip').style.display    = 'block';
     document.getElementById('scratchCardWrap').style.direction = lang === 'ur' ? 'rtl' : 'ltr';
 
     // Show overlay
@@ -1224,18 +1224,20 @@
     overlay.style.display = 'flex';
     void overlay.offsetHeight;
 
-    // ── Draw fresh gold scratch layer ──
-    const c = document.getElementById('scratchCanvas');
-
-    // Strip old event listeners by replacing element
-    const fresh = c.cloneNode(false); // false = no children, just the element
-    c.parentNode.replaceChild(fresh, c);
-    const canvas = document.getElementById('scratchCanvas');
-
-    // Size canvas to card
-    const dpr   = Math.min(window.devicePixelRatio || 1, 3);
-    const cSize = Math.min(300, Math.floor(window.innerWidth * 0.85));
+    // ── Recreate canvas cleanly (removes all stale listeners) ──
     const wrap  = document.getElementById('scratchCardWrap');
+    const oldC  = document.getElementById('scratchCanvas');
+    if (oldC) oldC.remove();
+
+    const canvas = document.createElement('canvas');
+    canvas.id = 'scratchCanvas';
+    // Critical mobile styles set BEFORE appending
+    canvas.style.cssText = 'position:absolute;inset:0;cursor:crosshair;border-radius:24px;display:block;touch-action:none;-webkit-user-select:none;user-select:none;';
+    wrap.appendChild(canvas);
+
+    // ── Size canvas with DPR ──
+    const dpr   = Math.min(window.devicePixelRatio || 1, 3);
+    const cSize = wrap.offsetWidth || Math.min(300, Math.floor(window.innerWidth * 0.85));
     wrap.style.width  = cSize + 'px';
     wrap.style.height = cSize + 'px';
     canvas.style.width  = cSize + 'px';
@@ -1243,19 +1245,19 @@
     canvas.width  = cSize * dpr;
     canvas.height = cSize * dpr;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     ctx.scale(dpr, dpr);
 
-    // Fill solid gold — must cover EVERY pixel so reveal underneath is hidden
+    // ── Draw gold layer ──
     const grad = ctx.createLinearGradient(0, 0, cSize, cSize);
-    grad.addColorStop(0,   '#c8a96e');
-    grad.addColorStop(0.35,'#edd98a');
-    grad.addColorStop(0.65,'#c8a96e');
-    grad.addColorStop(1,   '#a07840');
+    grad.addColorStop(0,    '#c8a96e');
+    grad.addColorStop(0.35, '#edd98a');
+    grad.addColorStop(0.65, '#c8a96e');
+    grad.addColorStop(1,    '#a07840');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, cSize, cSize);
 
-    // Subtle shimmer texture
+    // Shimmer dots
     ctx.fillStyle = 'rgba(255,255,255,0.07)';
     for (let i = 0; i < cSize * 5; i++) {
       ctx.beginPath();
@@ -1264,94 +1266,122 @@
     }
 
     // Label
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(1,36,40,0.55)';
-    ctx.font = 'bold 13px Jost, sans-serif';
+    ctx.textAlign   = 'center';
+    ctx.fillStyle   = 'rgba(1,36,40,0.55)';
+    ctx.font        = 'bold 13px Jost, sans-serif';
     ctx.fillText('✦  SCRATCH HERE  ✦', cSize/2, cSize/2);
-    ctx.font = '11px Jost, sans-serif';
-    ctx.fillStyle = 'rgba(1,36,40,0.38)';
+    ctx.font        = '11px Jost, sans-serif';
+    ctx.fillStyle   = 'rgba(1,36,40,0.38)';
     ctx.fillText('— Your gift is hiding below —', cSize/2, cSize/2 + 22);
 
-    // ── Scratch interaction ──
-    let drawing = false;
-    let done    = false;
+    // ── Scratch state ──
+    let drawing    = false;
+    let done       = false;
+    let lastX      = -1, lastY = -1;
     const THRESHOLD = 0.40;
+    const RADIUS    = (window.innerWidth <= 768 ? 44 : 32) * dpr; // BIG finger radius
 
-    // ── Universal pointer coords (works mouse + touch + stylus) ──
+    // ── Get canvas-space coords from any event ──
     function getXY(e) {
       const rect = canvas.getBoundingClientRect();
-      // Pointer events give clientX/Y directly; touch events use touches[]
-      let clientX, clientY;
+      let cx, cy;
       if (e.touches && e.touches.length > 0) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
+        cx = e.touches[0].clientX; cy = e.touches[0].clientY;
       } else if (e.changedTouches && e.changedTouches.length > 0) {
-        clientX = e.changedTouches[0].clientX;
-        clientY = e.changedTouches[0].clientY;
+        cx = e.changedTouches[0].clientX; cy = e.changedTouches[0].clientY;
       } else {
-        clientX = e.clientX;
-        clientY = e.clientY;
+        cx = e.clientX; cy = e.clientY;
       }
       return {
-        x: (clientX - rect.left) * (canvas.width  / rect.width),
-        y: (clientY - rect.top)  * (canvas.height / rect.height)
+        x: (cx - rect.left) * dpr,
+        y: (cy - rect.top)  * dpr
       };
     }
 
+    // ── Draw scratch circle + line between points (no gaps on fast swipes) ──
     function doScratch(x, y) {
       ctx.globalCompositeOperation = 'destination-out';
+      // Fill circle at current point
       ctx.beginPath();
-      // Larger radius on mobile so finger scratches more area
-      const r = (window.innerWidth <= 520 ? 38 : 30) * dpr;
-      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.arc(x, y, RADIUS, 0, Math.PI * 2);
       ctx.fill();
+      // Draw thick line from last point to fill gaps during fast movement
+      if (lastX >= 0) {
+        ctx.beginPath();
+        ctx.lineWidth = RADIUS * 2;
+        ctx.lineCap   = 'round';
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      }
+      lastX = x; lastY = y;
       ctx.globalCompositeOperation = 'source-over';
     }
 
-    let checkFrame = null;
+    // ── Threshold check (debounced) ──
+    let checkPending = false;
     function checkThreshold() {
-      if (done) return;
-      if (checkFrame) return; // debounce — only one check per frame
-      checkFrame = requestAnimationFrame(() => {
-        checkFrame = null;
+      if (done || checkPending) return;
+      checkPending = true;
+      requestAnimationFrame(() => {
+        checkPending = false;
         if (done) return;
-        const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
         let transparent = 0;
-        for (let i = 3; i < d.length; i += 4) { if (d[i] < 128) transparent++; }
+        for (let i = 3; i < data.length; i += 4) { if (data[i] < 128) transparent++; }
         if (transparent / (canvas.width * canvas.height) > THRESHOLD) {
           done = true;
-          setTimeout(() => completeScratch(), 300);
+          setTimeout(completeScratch, 300);
         }
       });
     }
 
-    // ── Pointer Events API — single unified handler for mouse + touch + pen ──
-    canvas.style.touchAction = 'none'; // block browser scroll on canvas
-    canvas.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      canvas.setPointerCapture(e.pointerId);
+    // ── TOUCH EVENTS — most reliable for iOS Safari ──
+    canvas.addEventListener('touchstart', function(e) {
+      e.preventDefault(); e.stopPropagation();
       drawing = true;
-      const p = getXY(e); doScratch(p.x, p.y);
+      const p = getXY(e); lastX = p.x; lastY = p.y; doScratch(p.x, p.y);
+    }, { passive: false, capture: true });
+
+    canvas.addEventListener('touchmove', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      if (!drawing) return;
+      const p = getXY(e); doScratch(p.x, p.y); checkThreshold();
+    }, { passive: false, capture: true });
+
+    canvas.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      drawing = false; lastX = -1; lastY = -1; checkThreshold();
     }, { passive: false });
-    canvas.addEventListener('pointermove', e => {
+
+    canvas.addEventListener('touchcancel', function() {
+      drawing = false; lastX = -1; lastY = -1;
+    });
+
+    // ── POINTER EVENTS — Android Chrome + modern iOS ──
+    canvas.addEventListener('pointerdown', function(e) {
+      e.preventDefault();
+      try { canvas.setPointerCapture(e.pointerId); } catch(_) {}
+      drawing = true;
+      const p = getXY(e); lastX = p.x; lastY = p.y; doScratch(p.x, p.y);
+    }, { passive: false });
+
+    canvas.addEventListener('pointermove', function(e) {
       e.preventDefault();
       if (!drawing) return;
       const p = getXY(e); doScratch(p.x, p.y); checkThreshold();
     }, { passive: false });
-    canvas.addEventListener('pointerup',     e => { drawing = false; checkThreshold(); });
-    canvas.addEventListener('pointercancel', e => { drawing = false; });
 
-    // ── Fallback touch events for older iOS Safari (pre-pointer-events support) ──
-    canvas.addEventListener('touchstart', e => {
-      if (e.cancelable) e.preventDefault();
-      drawing = true; const p = getXY(e); doScratch(p.x, p.y);
-    }, { passive: false });
-    canvas.addEventListener('touchmove', e => {
-      if (e.cancelable) e.preventDefault();
-      if (!drawing) return; const p = getXY(e); doScratch(p.x, p.y); checkThreshold();
-    }, { passive: false });
-    canvas.addEventListener('touchend', e => { drawing = false; checkThreshold(); });
+    canvas.addEventListener('pointerup',     function(e) { drawing = false; lastX = -1; lastY = -1; checkThreshold(); });
+    canvas.addEventListener('pointercancel', function(e) { drawing = false; lastX = -1; lastY = -1; });
+
+    // ── MOUSE fallback ──
+    canvas.addEventListener('mousedown',  e => { drawing = true;  const p = getXY(e); lastX=p.x; lastY=p.y; doScratch(p.x, p.y); });
+    canvas.addEventListener('mousemove',  e => { if (!drawing) return; const p = getXY(e); doScratch(p.x, p.y); checkThreshold(); });
+    canvas.addEventListener('mouseup',    () => { drawing = false; lastX=-1; lastY=-1; });
+    canvas.addEventListener('mouseleave', () => { drawing = false; lastX=-1; lastY=-1; });
   }
+
   function completeScratch() {
     if(typeof ariaOnScratch==="function") ariaOnScratch();
 
@@ -1944,7 +1974,7 @@
 </svg>
 
 <!-- ── Scratch Card Overlay ── -->
-<div id="scratchOverlay" style="display:none; position:fixed; inset:0; z-index:1000; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); background:rgba(1,36,40,0.55); align-items:center; justify-content:center; flex-direction:column; padding: env(safe-area-inset-top,16px) 16px env(safe-area-inset-bottom,16px);">
+<div id="scratchOverlay" style="display:none; position:fixed; inset:0; z-index:1000; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); background:rgba(1,36,40,0.55); align-items:center; justify-content:center; flex-direction:column; padding: env(safe-area-inset-top,16px) 16px env(safe-area-inset-bottom,16px); touch-action:none; -webkit-user-select:none; user-select:none;">
   <div id="scratchCardWrap" style="position:relative; width:min(300px, 85vw); height:min(300px, 85vw); border-radius:24px; box-shadow:0 32px 80px rgba(1,36,40,0.45); overflow:hidden; touch-action:none; -webkit-user-select:none; user-select:none;">
     <!-- Revealed layer (shown when scratched) -->
     <div id="scratchReveal" style="position:absolute;inset:0;background:#f4f0ea;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center;">
